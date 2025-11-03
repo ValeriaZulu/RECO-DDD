@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RECO.Domain\RECO.Domain.csproj" />
+    <ProjectReference Include="..\RECO.Application\RECO.Application.csproj" Condition="Exists('..\RECO.Application\RECO.Application.csproj')" />
+    <ProjectReference Include="..\RECO.Infrastructure\RECO.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

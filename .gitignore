@@ -1,0 +1,9 @@
+bin/
+obj/
+**/bin/
+**/obj/
+.env
+.vs/
+*.user
+*.suo
+pgdata/
