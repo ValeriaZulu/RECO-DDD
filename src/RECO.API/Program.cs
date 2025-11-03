@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using RECO.Infrastructure.Persistence;
 using RECO.Infrastructure.TMDbClient;
+using MediatR;
+using RECO.Application.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,15 @@ builder.Services.AddHttpClient<ITMDbClient, TMDbAdapter>();
 
 builder.Services.AddControllersWithViews();
 
+// Register MediatR handlers from Application assembly. Uses DI by interface per constitution (DIP).
+builder.Services.AddMediatR(typeof(ReviewDto).Assembly);
+
 var app = builder.Build();
+
+// Register custom middleware: Error handling and request logging.
+// ErrorHandlingMiddleware formats exceptions as JSON; RequestLoggingMiddleware logs basic request info.
+app.UseMiddleware<RECO.API.Middleware.ErrorHandlingMiddleware>();
+app.UseMiddleware<RECO.API.Middleware.RequestLoggingMiddleware>();
 
 if (!app.Environment.IsDevelopment())
 {

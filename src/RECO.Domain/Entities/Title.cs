@@ -17,6 +17,9 @@ namespace RECO.Domain.Entities
 
         public List<Genre> Genres { get; private set; } = new();
         public List<PlatformAvailability> Availabilities { get; private set; } = new();
+    // Reviews are part of the Title aggregate. Title is the aggregate root and
+    // must manage adding reviews to preserve invariants (see constitution: "aggregate roots control consistency").
+    public List<Review> Reviews { get; private set; } = new();
 
         private Title() { }
 
@@ -27,6 +30,17 @@ namespace RECO.Domain.Entities
             TmdbId = tmdbId;
             Type = type;
             TitleName = title;
+        }
+
+        /// <summary>
+        /// Adds a review to the Title aggregate. Aggregate root enforces that the review's TitleId matches.
+        /// Uses SRP and guards invariants (see constitution).
+        /// </summary>
+        public void AddReview(Review review)
+        {
+            if (review == null) throw new ArgumentNullException(nameof(review));
+            if (review.TitleId != Id) throw new InvalidOperationException("Review TitleId does not match aggregate root Id");
+            Reviews.Add(review);
         }
 
         public void SetSynopsis(string synopsis) => Synopsis = synopsis;
