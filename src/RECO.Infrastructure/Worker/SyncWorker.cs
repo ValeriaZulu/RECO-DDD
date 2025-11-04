@@ -3,9 +3,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RECO.Infrastructure.TMDbClient;
 using RECO.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using RECO.Application.Clients;
+using RECO.Application.Interfaces;
 
 namespace RECO.Infrastructure.Worker
 {
@@ -13,12 +14,14 @@ namespace RECO.Infrastructure.Worker
     public class SyncWorker : BackgroundService
     {
         private readonly ILogger<SyncWorker> _logger;
+        private readonly IImportService _importService;
         private readonly ITMDbClient _tmdb;
         private readonly RECODbContext _db;
 
-        public SyncWorker(ILogger<SyncWorker> logger, ITMDbClient tmdb, RECODbContext db)
+        public SyncWorker(ILogger<SyncWorker> logger, IImportService importService, ITMDbClient tmdb, RECODbContext db)
         {
             _logger = logger;
+            _importService = importService;
             _tmdb = tmdb;
             _db = db;
         }
@@ -30,13 +33,21 @@ namespace RECO.Infrastructure.Worker
             // For demo we run once and exit
             try
             {
-                var items = await _tmdb.GetPopularMoviesAsync(1);
-                foreach (var it in items)
+                _logger.LogInformation("Fetching trending titles from TMDb...");
+                var trending = await _tmdb.GetTrendingAsync();
+                foreach (var item in trending)
                 {
-                    _logger.LogInformation("Found TMDb item {Id} - {Title}", it.Id, it.Title);
-                    // Minimal upsert: ensure Titles table exists and add a row - simplified for demo
-                    // Note: real mapping to domain entities and upsert via repository should be used.
-                    // This method keeps worker as a small integration test scaffold per M3.
+                    try
+                    {
+                        _logger.LogInformation("Importing {Title} ({Id})...", item.Title, item.Id);
+                        Console.WriteLine($"Importing {item.Title} ({item.Id})...");
+                        await _importService.ImportFromTMDbAsync(item.Id);
+                        _logger.LogInformation("Imported {Id}", item.Id);
+                    }
+                    catch (Exception inner)
+                    {
+                        _logger.LogError(inner, "Failed to import {Id}", item.Id);
+                    }
                 }
             }
             catch (Exception ex)

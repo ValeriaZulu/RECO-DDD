@@ -16,6 +16,7 @@ namespace RECO.Infrastructure.Services
             services.AddScoped<IUserRepository, EFUserRepository>();
             services.AddScoped<ITitleRepository, EFTitleRepository>();
             services.AddScoped<IReviewRepository, EFReviewRepository>();
+            services.AddScoped<IGenreRepository, EFGenreRepository>();
 
             return services;
         }

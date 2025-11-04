@@ -13,13 +13,20 @@ namespace RECO.Domain.Entities
         public string TitleName { get; private set; } = string.Empty;
         public string? Synopsis { get; private set; }
         public string? PosterUrl { get; private set; }
-        public DateTime? ReleaseDate { get; private set; }
+
+        // Backing field that always stores UTC-kind DateTime
+        private DateTime _releaseDate;
+        public DateTime ReleaseDate
+        {
+            get => _releaseDate;
+            private set => _releaseDate = DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        }
 
         public List<Genre> Genres { get; private set; } = new();
         public List<PlatformAvailability> Availabilities { get; private set; } = new();
-    // Reviews are part of the Title aggregate. Title is the aggregate root and
-    // must manage adding reviews to preserve invariants (see constitution: "aggregate roots control consistency").
-    public List<Review> Reviews { get; private set; } = new();
+
+        // Reviews are part of the Title aggregate.
+        public List<Review> Reviews { get; private set; } = new();
 
         private Title() { }
 
@@ -30,6 +37,21 @@ namespace RECO.Domain.Entities
             TmdbId = tmdbId;
             Type = type;
             TitleName = title;
+            // Initialize ReleaseDate with a known UTC default if needed
+            _releaseDate = DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
+        }
+
+        /// <summary>
+        /// Sets the release date safely from a nullable DateTime (e.g. DTO input).
+        /// If null, leaves the ReleaseDate unchanged.
+        /// The stored DateTime will have Kind = Utc.
+        /// </summary>
+        public void SetReleaseDate(DateTime? date)
+        {
+            if (date.HasValue)
+            {
+                ReleaseDate = DateTime.SpecifyKind(date.Value, DateTimeKind.Utc);
+            }
         }
 
         /// <summary>
@@ -45,6 +67,11 @@ namespace RECO.Domain.Entities
 
         public void SetSynopsis(string synopsis) => Synopsis = synopsis;
         public void SetPoster(string url) => PosterUrl = url;
+        public void Rename(string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException(nameof(newName));
+            TitleName = newName;
+        }
         public void AddGenre(Genre g) => Genres.Add(g);
         public void AddAvailability(PlatformAvailability p) => Availabilities.Add(p);
     }
@@ -53,10 +80,15 @@ namespace RECO.Domain.Entities
     {
         public int Id { get; private set; }
         public string Name { get; private set; } = string.Empty;
-        private Genre() { }
-        public Genre(int id, string name)
+
+        // EF Core requires a parameterless constructor for materialization
+        protected Genre() { }
+
+        // Create a new Genre with a name; Id will be assigned by the database
+        public Genre(string name)
         {
-            Id = id; Name = name;
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException(nameof(name));
+            Name = name;
         }
     }
 

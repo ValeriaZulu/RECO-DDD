@@ -1,54 +1,130 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using RECO.Application.Clients;
+using RECO.Application.DTOs;
 
 namespace RECO.Infrastructure.TMDbClient
 {
-    // Adapter implements the TMDb client and maps DTOs to domain. Adheres to Adapter pattern.
-    public class TMDbAdapter : ITMDbClient
+    /// <summary>
+    /// Simple TMDb adapter that implements ITMDbClient. Reads API key from environment variables.
+    /// Infrastructure contains HTTP logic; Application only depends on the abstraction (DIP).
+    /// </summary>
+    public class TMDbAdapter : RECO.Application.Clients.ITMDbClient
     {
         private readonly HttpClient _http;
-        private readonly string _apiKey;
+        private readonly ILogger<TMDbAdapter> _logger;
+        private readonly string? _apiKey;
 
-        public TMDbAdapter(HttpClient http, IConfiguration config)
+        public TMDbAdapter(HttpClient http, ILogger<TMDbAdapter> logger)
         {
             _http = http ?? throw new ArgumentNullException(nameof(http));
-            _apiKey = config["TMDB_API_KEY"] ?? string.Empty;
-            // Constitution: secrets MUST come from env vars / secret manager
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _apiKey = Environment.GetEnvironmentVariable("TMDB_API_KEY");
+            if (string.IsNullOrWhiteSpace(_apiKey)) _logger.LogWarning("TMDB_API_KEY not set in environment");
         }
 
-        public async Task<IEnumerable<TMDbDto>> GetPopularMoviesAsync(int page = 1)
+        public async Task<MovieDto> GetMovieDetailsAsync(int tmdbId)
         {
-            if (string.IsNullOrEmpty(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
-            var url = $"https://api.themoviedb.org/3/movie/popular?api_key={_apiKey}&page={page}";
-            var resp = await _http.GetFromJsonAsync<TMDbPopularResponse>(url);
-            return resp?.Results ?? Array.Empty<TMDbDto>();
+            if (string.IsNullOrWhiteSpace(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
+
+            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={_apiKey}&language=en-US";
+            var res = await _http.GetAsync(url);
+            res.EnsureSuccessStatusCode();
+            using var s = await res.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(s);
+            var root = doc.RootElement;
+
+            var dto = new MovieDto
+            {
+                Id = root.GetProperty("id").GetInt32(),
+                Title = root.GetProperty("title").GetString() ?? string.Empty,
+                Overview = root.TryGetProperty("overview", out var ov) ? ov.GetString() : null,
+                PosterPath = root.TryGetProperty("poster_path", out var pp) && pp.GetString() is string p ? $"https://image.tmdb.org/t/p/w500{p}" : null,
+            };
+
+            if (root.TryGetProperty("release_date", out var rd) && DateTime.TryParse(rd.GetString(), out var d)) dto.ReleaseDate = d;
+            if (root.TryGetProperty("genres", out var genres) && genres.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var g in genres.EnumerateArray())
+                {
+                    if (g.TryGetProperty("name", out var name)) dto.Genres.Add(name.GetString() ?? string.Empty);
+                }
+            }
+
+            return dto;
         }
 
-        public async Task<TMDbDto?> GetDetailsAsync(int tmdbId, string type = "movie")
+        public async Task<IEnumerable<MovieDto>> GetPopularMoviesAsync(int page = 1)
         {
-            if (string.IsNullOrEmpty(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
-            var url = $"https://api.themoviedb.org/3/{type}/{tmdbId}?api_key={_apiKey}";
-            var resp = await _http.GetFromJsonAsync<TMDbDetailsResponse>(url);
-            return resp is null ? null : new TMDbDto(resp.Id, resp.Title ?? resp.Name ?? "", resp.Overview, resp.PosterPath);
+            if (string.IsNullOrWhiteSpace(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
+
+            var url = $"https://api.themoviedb.org/3/movie/popular?api_key={_apiKey}&language=en-US&page={page}";
+            var res = await _http.GetAsync(url);
+            res.EnsureSuccessStatusCode();
+            using var s = await res.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(s);
+            var root = doc.RootElement;
+            var results = new List<MovieDto>();
+            if (root.TryGetProperty("results", out var arr) && arr.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in arr.EnumerateArray())
+                {
+                    var m = new MovieDto
+                    {
+                        Id = item.GetProperty("id").GetInt32(),
+                        Title = item.GetProperty("title").GetString() ?? string.Empty,
+                        Overview = item.TryGetProperty("overview", out var ov) ? ov.GetString() : null,
+                        PosterPath = item.TryGetProperty("poster_path", out var pp) && pp.GetString() is string p ? $"https://image.tmdb.org/t/p/w500{p}" : null
+                    };
+                    results.Add(m);
+                }
+            }
+
+            return results;
         }
-    }
 
-    internal class TMDbPopularResponse
-    {
-        public int Page { get; set; }
-        public TMDbDto[] Results { get; set; } = Array.Empty<TMDbDto>();
-    }
+        public async Task<IEnumerable<MovieDto>> GetTrendingAsync(int page = 1)
+        {
+            if (string.IsNullOrWhiteSpace(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
 
-    internal class TMDbDetailsResponse
-    {
-        public int Id { get; set; }
-        public string? Title { get; set; }
-        public string? Name { get; set; }
-        public string? Overview { get; set; }
-        public string? PosterPath { get; set; }
+            var url = $"https://api.themoviedb.org/3/trending/all/week?api_key={_apiKey}&language=en-US&page={page}";
+            var res = await _http.GetAsync(url);
+            res.EnsureSuccessStatusCode();
+            using var s = await res.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(s);
+            var root = doc.RootElement;
+            var results = new List<MovieDto>();
+            if (root.TryGetProperty("results", out var arr) && arr.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in arr.EnumerateArray())
+                {
+                    // trending returns either 'title' (movie) or 'name' (tv)
+                    var id = item.GetProperty("id").GetInt32();
+                    var title = item.TryGetProperty("title", out var t) && t.GetString() is string ts && !string.IsNullOrWhiteSpace(ts)
+                        ? ts
+                        : item.TryGetProperty("name", out var n) && n.GetString() is string ns ? ns : string.Empty;
+
+                    var m = new MovieDto
+                    {
+                        Id = id,
+                        Title = title,
+                        Overview = item.TryGetProperty("overview", out var ov) ? ov.GetString() : null,
+                        PosterPath = item.TryGetProperty("poster_path", out var pp) && pp.GetString() is string p ? $"https://image.tmdb.org/t/p/w500{p}" : null
+                    };
+
+                    // release date may be 'release_date' (movie) or 'first_air_date' (tv)
+                    if (item.TryGetProperty("release_date", out var rd) && DateTime.TryParse(rd.GetString(), out var d)) m.ReleaseDate = d;
+                    else if (item.TryGetProperty("first_air_date", out var fa) && DateTime.TryParse(fa.GetString(), out var fd)) m.ReleaseDate = fd;
+
+                    results.Add(m);
+                }
+            }
+
+            return results;
+        }
     }
 }

@@ -11,6 +11,7 @@ namespace RECO.Infrastructure.Persistence
         public DbSet<User> Users { get; set; }
         public DbSet<Profile> Profiles { get; set; }
         public DbSet<Title> Titles { get; set; }
+    public DbSet<Genre> Genres { get; set; }
         public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,6 +47,18 @@ namespace RECO.Infrastructure.Persistence
                 b.HasIndex("TmdbId").IsUnique();
                 // Map Reviews as regular entity relationship
                 b.HasMany(t => t.Reviews).WithOne().HasForeignKey("TitleId");
+                // Many-to-many between Title and Genre using join table 'TitleGenres'
+                b.HasMany(t => t.Genres)
+                 .WithMany()
+                 .UsingEntity<Dictionary<string, object>>("TitleGenres",
+                    r => r.HasOne<Genre>().WithMany().HasForeignKey("GenreId").OnDelete(DeleteBehavior.Cascade),
+                    l => l.HasOne<Title>().WithMany().HasForeignKey("TitleId").OnDelete(DeleteBehavior.Cascade)
+                 );
+            });
+
+            modelBuilder.Entity<Genre>(g => {
+                g.HasKey(x => x.Id);
+                g.Property(x => x.Name).IsRequired();
             });
         }
     }

@@ -15,7 +15,7 @@ var conn = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "Host=localhost
 builder.Services.AddDbContext<RECODbContext>(o => o.UseNpgsql(conn));
 
 // TMDb client wiring - HttpClient via DI
-builder.Services.AddHttpClient<ITMDbClient, TMDbAdapter>();
+builder.Services.AddHttpClient<RECO.Application.Clients.ITMDbClient, RECO.Infrastructure.TMDbClient.TMDbAdapter>();
 
 builder.Services.AddControllersWithViews();
 
