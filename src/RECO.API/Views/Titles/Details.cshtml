@@ -1,9 +1,60 @@
+@model RECO.Domain.Entities.Title
+
 @{
-    var tmdbId = ViewBag.TmdbId ?? 0;
+    if (Model == null)
+    {
+        <div style="font-family: Arial; max-width:800px; margin: 0 auto;">
+            <h1>Not found</h1>
+            <p>The requested title was not found.</p>
+            <a class="btn btn-secondary" href="/Movies">Back</a>
+        </div>
+    }
+    else
+    {
+        ViewData["Title"] = Model.TitleName;
+        <div style="font-family: Arial; max-width:800px; margin: 0 auto;">
+            <h1>@Model.TitleName</h1>
+            <p><strong>Release:</strong> @(Model.ReleaseDate != default ? Model.ReleaseDate.ToString("yyyy") : "-")</p>
+            <p><strong>Genres:</strong> @((Model.Genres != null && Model.Genres.Count>0) ? string.Join(", ",
+                        Model.Genres.Select(g => g.Name)) : "-")</p>
+            <div style="margin-top:12px;">
+                @if (!string.IsNullOrEmpty(Model.PosterUrl))
+                {
+                    <img src="@Model.PosterUrl" alt="poster" style="width:200px; float:left; margin-right:12px;" />
+                }
+                <div>@(string.IsNullOrWhiteSpace(Model.Synopsis) ? "No synopsis available." : Model.Synopsis)</div>
+            </div>
+            <div style="clear: both; margin-top:16px;">
+                <a class="btn btn-secondary" href="javascript:history.back()">Back</a>
+            </div>
+        </div>
+    }
+}
+@{
+    var trailerKey = ViewBag.TrailerKey as string;
+    var tmdbId = Model?.TmdbId ?? 0;
+    string watchUrl = string.Empty;
+    if (tmdbId != 0)
+    {
+        if (Model?.Type == RECO.Domain.Entities.TitleType.Series) watchUrl = $"https://www.themoviedb.org/tv/{tmdbId}/watch";
+        else watchUrl = $"https://www.themoviedb.org/movie/{tmdbId}/watch";
+    }
 }
 
-<h2>Title Details (TMDb id: @tmdbId)</h2>
-<div class="details">
-    <p>Synopsis: (demo)</p>
-    <p>Trailer: <iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe></p>
-</div>
+@if (!string.IsNullOrWhiteSpace(trailerKey))
+{
+    <div style="margin-top:18px;">
+        <h3>Trailer</h3>
+        <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/@trailerKey" title="Trailer" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(watchUrl))
+{
+    <div style="margin-top:18px;">
+        <p><strong>Watch / Trailer:</strong> <a href="@watchUrl" target="_blank" rel="noopener">Open on TMDb</a></p>
+    </div>
+}

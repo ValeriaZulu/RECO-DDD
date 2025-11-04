@@ -166,5 +166,44 @@ namespace RECO.Infrastructure.TMDbClient
 
             return results;
         }
+
+        public async Task<IEnumerable<RECO.Application.DTOs.VideoDto>> GetVideosAsync(int tmdbId, string mediaType)
+        {
+            if (string.IsNullOrWhiteSpace(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
+
+            string url;
+            if (string.Equals(mediaType, "tv", StringComparison.OrdinalIgnoreCase))
+                url = $"https://api.themoviedb.org/3/tv/{tmdbId}/videos?api_key={_apiKey}&language=en-US";
+            else
+                url = $"https://api.themoviedb.org/3/movie/{tmdbId}/videos?api_key={_apiKey}&language=en-US";
+
+            var res = await _http.GetAsync(url);
+            if (!res.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("TMDb videos request failed for {tmdbId} {mediaType} -> {status}", tmdbId, mediaType, res.StatusCode);
+                return Array.Empty<RECO.Application.DTOs.VideoDto>();
+            }
+
+            using var s = await res.Content.ReadAsStreamAsync();
+            using var doc = await JsonDocument.ParseAsync(s);
+            var root = doc.RootElement;
+            var list = new List<RECO.Application.DTOs.VideoDto>();
+            if (root.TryGetProperty("results", out var arr) && arr.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in arr.EnumerateArray())
+                {
+                    var key = item.TryGetProperty("key", out var k) ? k.GetString() ?? string.Empty : string.Empty;
+                    var site = item.TryGetProperty("site", out var s2) ? s2.GetString() ?? string.Empty : string.Empty;
+                    var type = item.TryGetProperty("type", out var t) ? t.GetString() ?? string.Empty : string.Empty;
+                    var name = item.TryGetProperty("name", out var n) ? n.GetString() : null;
+                    if (!string.IsNullOrWhiteSpace(key))
+                    {
+                        list.Add(new RECO.Application.DTOs.VideoDto { Key = key, Site = site, Type = type, Name = name });
+                    }
+                }
+            }
+
+            return list;
+        }
     }
 }

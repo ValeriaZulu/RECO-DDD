@@ -26,6 +26,10 @@
                 <div style="width:180px; height:270px; display:flex; align-items:center; justify-content:center; background:#eee; border-radius:8px;">No image</div>
             }
             <div style="margin-top: 8px; font-weight: bold;">@movie.TitleName</div>
+            @* Genres intentionally hidden on the cards per UX preference *@
+            <div style="margin-top:6px;">
+                <a class="btn btn-sm btn-outline" href="/Titles/Details/@movie.Id">View</a>
+            </div>
         </div>
     }
 </div>

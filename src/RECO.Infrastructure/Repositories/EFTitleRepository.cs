@@ -37,7 +37,15 @@ namespace RECO.Infrastructure.Repositories
 
         public async Task<Title?> GetByIdAsync(Guid id)
         {
-            return await _db.Titles.Include(t => t.Reviews).FirstOrDefaultAsync(t => t.Id == id);
+            // Load the Title first, then explicitly load related collections to ensure the TitleGenres join is used.
+            var title = await _db.Titles.FirstOrDefaultAsync(t => t.Id == id);
+            if (title == null) return null;
+
+            // Explicitly load genres and reviews to ensure navigations are populated
+            await _db.Entry(title).Collection(t => t.Genres).LoadAsync();
+            await _db.Entry(title).Collection(t => t.Reviews).LoadAsync();
+
+            return title;
         }
 
         public async Task UpsertAsync(Title title)
