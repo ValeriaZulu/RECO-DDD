@@ -11,6 +11,7 @@ namespace RECO.Application.Clients
     public interface ITMDbClient
     {
         Task<MovieDto> GetMovieDetailsAsync(int tmdbId);
+        Task<MovieDto> GetDetailsAsync(int tmdbId, string? mediaType = null);
         Task<IEnumerable<MovieDto>> GetPopularMoviesAsync(int page = 1);
         /// <summary>
         /// Returns a batch of trending titles (movies and series) — used by the worker to import multiple items.

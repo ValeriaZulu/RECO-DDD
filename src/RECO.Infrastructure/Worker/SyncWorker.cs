@@ -41,7 +41,7 @@ namespace RECO.Infrastructure.Worker
                     {
                         _logger.LogInformation("Importing {Title} ({Id})...", item.Title, item.Id);
                         Console.WriteLine($"Importing {item.Title} ({item.Id})...");
-                        await _importService.ImportFromTMDbAsync(item.Id);
+                        await _importService.ImportFromTMDbAsync(item.Id, item.MediaType);
                         _logger.LogInformation("Imported {Id}", item.Id);
                     }
                     catch (Exception inner)

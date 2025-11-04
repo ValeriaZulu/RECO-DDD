@@ -7,6 +7,7 @@ using RECO.Infrastructure.Persistence;
 using RECO.Infrastructure.TMDbClient;
 using MediatR;
 using RECO.Application.DTOs;
+using RECO.Infrastructure.Services; // 👈 IMPORTANTE
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,10 +23,14 @@ builder.Services.AddControllersWithViews();
 // Register MediatR handlers from Application assembly. Uses DI by interface per constitution (DIP).
 builder.Services.AddMediatR(typeof(ReviewDto).Assembly);
 
+// ✅ Add Infrastructure services (repositories, etc.)
+builder.Services.AddInfrastructureServices();
+
+builder.Services.AddScoped<RECO.Domain.Interfaces.IDomainEventDispatcher, RECO.Infrastructure.Events.DomainEventDispatcher>();
+
 var app = builder.Build();
 
 // Register custom middleware: Error handling and request logging.
-// ErrorHandlingMiddleware formats exceptions as JSON; RequestLoggingMiddleware logs basic request info.
 app.UseMiddleware<RECO.API.Middleware.ErrorHandlingMiddleware>();
 app.UseMiddleware<RECO.API.Middleware.RequestLoggingMiddleware>();
 

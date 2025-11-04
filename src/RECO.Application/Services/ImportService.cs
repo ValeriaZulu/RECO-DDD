@@ -24,16 +24,21 @@ namespace RECO.Application.Services
             _genreRepository = genreRepository ?? throw new ArgumentNullException(nameof(genreRepository));
         }
 
-        public async Task ImportFromTMDbAsync(int tmdbId)
+        public async Task ImportFromTMDbAsync(int tmdbId, string? mediaType = null)
         {
-            var movie = await _tmdb.GetMovieDetailsAsync(tmdbId);
+            // ask TMDb client for details; the client understands movies vs tv when available
+            var movie = await _tmdb.GetDetailsAsync(tmdbId,mediaType);
             if (movie == null) throw new InvalidOperationException($"Movie with id {tmdbId} not found on TMDb");
 
             // Check existing title by TMDb id to perform idempotent upsert
             var existing = await _titleRepository.GetByTmdbIdAsync(movie.Id);
             if (existing is null)
             {
-                var title = new Title(Guid.NewGuid(), movie.Id, TitleType.Movie, movie.Title ?? "Untitled");
+                // determine TitleType from the DTO media type when available
+                var ttype = TitleType.Movie;
+                if (!string.IsNullOrWhiteSpace(movie.MediaType) && movie.MediaType.Equals("tv", StringComparison.OrdinalIgnoreCase)) ttype = TitleType.Series;
+
+                var title = new Title(Guid.NewGuid(), movie.Id, ttype, movie.Title ?? "Untitled");
                 if (!string.IsNullOrWhiteSpace(movie.Overview)) title.SetSynopsis(movie.Overview);
                 if (!string.IsNullOrWhiteSpace(movie.PosterPath)) title.SetPoster(movie.PosterPath);
                 if (movie.ReleaseDate != DateTime.MinValue) title.SetReleaseDate(movie.ReleaseDate);
@@ -62,6 +67,13 @@ namespace RECO.Application.Services
                 if (!string.IsNullOrWhiteSpace(movie.Overview)) existing.SetSynopsis(movie.Overview);
                 if (!string.IsNullOrWhiteSpace(movie.PosterPath)) existing.SetPoster(movie.PosterPath);
                 if (movie.ReleaseDate != DateTime.MinValue) existing.SetReleaseDate(movie.ReleaseDate);
+
+                // update Type if media type information is present
+                if (!string.IsNullOrWhiteSpace(movie.MediaType))
+                {
+                    if (movie.MediaType.Equals("tv", StringComparison.OrdinalIgnoreCase)) existing.SetType(TitleType.Series);
+                    else existing.SetType(TitleType.Movie);
+                }
 
                 // Ensure genres are associated
                 foreach (var genreName in movie.Genres)

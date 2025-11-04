@@ -1,12 +1,31 @@
+@model IEnumerable<RECO.Domain.Entities.Title>
+
 @{
-    ViewData["Title"] = "Movies";
+    var pageTitle = ViewData["Title"] as string ?? "Titles";
+    ViewData["Title"] = pageTitle;
 }
 
-<h2>Movies</h2>
-<div id="movies-list">
-    <!-- Demo placeholder: in real app this will be populated via view model from Application layer -->
-    <div class="movie-item">
-        <img src="/images/poster-placeholder.png" alt="poster" width="120" />
-        <div class="title">Sample Movie</div>
-    </div>
+<h1 class="mb-4 text-2xl font-bold">🎬 @pageTitle</h1>
+
+<p style="margin-bottom: 12px;">
+    <a class="btn btn-primary" href="/Movies">Movies</a>
+    <a class="btn btn-secondary" href="/Series">Series</a>
+</p>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    @foreach (var movie in Model)
+    {
+        <div style="width: 180px; text-align: center; font-family: Arial;">
+            @if (!string.IsNullOrEmpty(movie.PosterUrl))
+            {
+                <img src="@movie.PosterUrl" alt="@movie.TitleName poster" 
+                     style="width: 180px; height: 270px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" />
+            }
+            else
+            {
+                <div style="width:180px; height:270px; display:flex; align-items:center; justify-content:center; background:#eee; border-radius:8px;">No image</div>
+            }
+            <div style="margin-top: 8px; font-weight: bold;">@movie.TitleName</div>
+        </div>
+    }
 </div>

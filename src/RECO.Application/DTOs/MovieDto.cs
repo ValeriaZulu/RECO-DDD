@@ -11,5 +11,7 @@ namespace RECO.Application.DTOs
         public string? PosterPath { get; set; }
         public DateTime? ReleaseDate { get; set; }
         public List<string> Genres { get; set; } = new();
+        // media type returned by some TMDb endpoints: "movie" or "tv"
+        public string? MediaType { get; set; }
     }
 }

@@ -74,6 +74,10 @@ namespace RECO.Domain.Entities
         }
         public void AddGenre(Genre g) => Genres.Add(g);
         public void AddAvailability(PlatformAvailability p) => Availabilities.Add(p);
+        /// <summary>
+        /// Update the TitleType (e.g., when importing metadata that clarifies movie vs series).
+        /// </summary>
+        public void SetType(TitleType type) => Type = type;
     }
 
     public class Genre

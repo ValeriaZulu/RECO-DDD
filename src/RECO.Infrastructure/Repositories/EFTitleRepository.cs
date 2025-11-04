@@ -60,5 +60,22 @@ namespace RECO.Infrastructure.Repositories
             await _db.Titles.AddAsync(title);
             await _db.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<Title>> GetAllAsync()
+        {
+            return await _db.Titles
+                .Include(t => t.Genres)
+                .Include(t => t.Reviews)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Title>> GetByTypeAsync(TitleType type)
+        {
+            return await _db.Titles
+                .Where(t => t.Type == type)
+                .Include(t => t.Genres)
+                .Include(t => t.Reviews)
+                .ToListAsync();
+        }
     }
 }

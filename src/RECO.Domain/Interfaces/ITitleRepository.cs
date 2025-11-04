@@ -14,5 +14,7 @@ namespace RECO.Domain.Interfaces
         Task<Title?> GetByTmdbIdAsync(int tmdbId);
         Task UpsertAsync(Title title);
         Task<IEnumerable<Title>> SearchByGenreAsync(int genreId, int limit = 50);
+        Task<IEnumerable<Title>> GetAllAsync();
+        Task<IEnumerable<Title>> GetByTypeAsync(TitleType type);
     }
 }

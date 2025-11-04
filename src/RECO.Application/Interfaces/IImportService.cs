@@ -4,6 +4,6 @@ namespace RECO.Application.Interfaces
 {
     public interface IImportService
     {
-        Task ImportFromTMDbAsync(int tmdbId);
+        Task ImportFromTMDbAsync(int tmdbId, string? mediaType = null);
     }
 }

@@ -55,7 +55,44 @@ namespace RECO.Infrastructure.TMDbClient
                 }
             }
 
+            // explicit media type for movie details
+            dto.MediaType = "movie";
+
             return dto;
+        }
+
+        public async Task<MovieDto> GetDetailsAsync(int tmdbId, string? mediaType = null)
+        {
+            // Decide endpoint based on mediaType or fallback to movie
+            if (string.Equals(mediaType, "tv", StringComparison.OrdinalIgnoreCase))
+            {
+                // call tv details
+                if (string.IsNullOrWhiteSpace(_apiKey)) throw new InvalidOperationException("TMDB_API_KEY not configured");
+                var url = $"https://api.themoviedb.org/3/tv/{tmdbId}?api_key={_apiKey}&language=en-US";
+                var res = await _http.GetAsync(url);
+                res.EnsureSuccessStatusCode();
+                using var s = await res.Content.ReadAsStreamAsync();
+                using var doc = await JsonDocument.ParseAsync(s);
+                var root = doc.RootElement;
+
+                var dto = new MovieDto
+                {
+                    Id = root.GetProperty("id").GetInt32(),
+                    Title = root.TryGetProperty("name", out var n) ? n.GetString() ?? string.Empty : string.Empty,
+                    Overview = root.TryGetProperty("overview", out var ov) ? ov.GetString() : null,
+                    PosterPath = root.TryGetProperty("poster_path", out var pp) && pp.GetString() is string p ? $"https://image.tmdb.org/t/p/w500{p}" : null,
+                    MediaType = "tv"
+                };
+                if (root.TryGetProperty("first_air_date", out var fa) && DateTime.TryParse(fa.GetString(), out var fd)) dto.ReleaseDate = fd;
+                if (root.TryGetProperty("genres", out var genres) && genres.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var g in genres.EnumerateArray()) if (g.TryGetProperty("name", out var name)) dto.Genres.Add(name.GetString() ?? string.Empty);
+                }
+                return dto;
+            }
+
+            // default to movie details
+            return await GetMovieDetailsAsync(tmdbId);
         }
 
         public async Task<IEnumerable<MovieDto>> GetPopularMoviesAsync(int page = 1)
@@ -115,6 +152,9 @@ namespace RECO.Infrastructure.TMDbClient
                         Overview = item.TryGetProperty("overview", out var ov) ? ov.GetString() : null,
                         PosterPath = item.TryGetProperty("poster_path", out var pp) && pp.GetString() is string p ? $"https://image.tmdb.org/t/p/w500{p}" : null
                     };
+
+                    // set media type when available from trending result
+                    if (item.TryGetProperty("media_type", out var mt)) m.MediaType = mt.GetString();
 
                     // release date may be 'release_date' (movie) or 'first_air_date' (tv)
                     if (item.TryGetProperty("release_date", out var rd) && DateTime.TryParse(rd.GetString(), out var d)) m.ReleaseDate = d;
