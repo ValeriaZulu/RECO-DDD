@@ -19,21 +19,28 @@ namespace RECO.Infrastructure.Persistence
             base.OnModelCreating(modelBuilder);
 
             // Minimal mappings to enable initial migrations
-            modelBuilder.Entity<User>(b => {
+            modelBuilder.Entity<User>(b =>
+            {
+                b.ToTable("Users");
                 b.HasKey(u => u.Id);
                 b.Property(u => u.Email).IsRequired();
             });
 
-            modelBuilder.Entity<Profile>(b => {
+            modelBuilder.Entity<Profile>(b =>
+            {
+                b.ToTable("Profiles");
                 b.HasKey(p => p.Id);
-                b.OwnsMany(p => p.GenrePreferences, gp => {
+                b.OwnsMany(p => p.GenrePreferences, gp =>
+                {
                     gp.WithOwner().HasForeignKey("ProfileId");
                     gp.Property<int>(nameof(Domain.Entities.GenrePreference.GenreId));
                     gp.Property<string>(nameof(Domain.Entities.GenrePreference.Name)).IsRequired();
                     gp.HasKey("ProfileId", nameof(Domain.Entities.GenrePreference.GenreId));
                 });
 
-                b.OwnsMany(p => p.PersonPreferences, pp => {
+                b.OwnsMany(p => p.PersonPreferences, pp =>
+                {
+                    pp.ToTable("PersonPreferences");
                     pp.WithOwner().HasForeignKey("ProfileId");
                     pp.Property<int>(nameof(Domain.Entities.PersonPreference.PersonId));
                     pp.Property<string>(nameof(Domain.Entities.PersonPreference.Name)).IsRequired();
@@ -41,7 +48,9 @@ namespace RECO.Infrastructure.Persistence
                 });
             });
 
-            modelBuilder.Entity<Title>(b => {
+            modelBuilder.Entity<Title>(b =>
+            {
+                b.ToTable("Titles");
                 b.HasKey(t => t.Id);
                 b.Property<int>("TmdbId").HasColumnName("TmdbId");
                 b.HasIndex("TmdbId").IsUnique();
@@ -56,7 +65,9 @@ namespace RECO.Infrastructure.Persistence
                  );
             });
 
-            modelBuilder.Entity<Genre>(g => {
+            modelBuilder.Entity<Genre>(g =>
+            {
+                g.ToTable("Genres");
                 g.HasKey(x => x.Id);
                 g.Property(x => x.Name).IsRequired();
             });

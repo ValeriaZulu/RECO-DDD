@@ -14,12 +14,19 @@ namespace RECO.API.Controllers
             _titleRepository = titleRepository;
         }
 
-            public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index()
+        {
+            try
             {
                 var movies = await _titleRepository.GetByTypeAsync(TitleType.Movie) ?? new List<Title>();
                 ViewData["Title"] = "Movies";
                 return View("~/Views/Titles/Index.cshtml", movies);
             }
+            catch (Exception ex)
+            {
+                return Content($"Error: {ex.Message}");
+            }
+        }
 
     }
 }

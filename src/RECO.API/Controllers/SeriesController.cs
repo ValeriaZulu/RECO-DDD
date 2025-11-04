@@ -15,9 +15,17 @@ namespace RECO.API.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var series = await _titleRepository.GetByTypeAsync(TitleType.Series) ?? new List<Title>();
-            ViewData["Title"] = "Series";
-            return View("~/Views/Titles/Index.cshtml", series);
+            try
+            {
+                var series = await _titleRepository.GetByTypeAsync(TitleType.Series) ?? new List<Title>();
+                ViewData["Title"] = "Series";
+                return View("~/Views/Titles/Index.cshtml", series);
+            }
+            catch (Exception ex)
+            {
+                return Content($"Error: {ex.Message}");
+            }
+
         }
 
     }

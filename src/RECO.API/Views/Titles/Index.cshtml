@@ -13,7 +13,7 @@
 </p>
 
 <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-    @foreach (var movie in Model)
+    @foreach (var movie in Model ?? System.Linq.Enumerable.Empty<RECO.Domain.Entities.Title>())
     {
         <div style="width: 180px; text-align: center; font-family: Arial;">
             @if (!string.IsNullOrEmpty(movie.PosterUrl))
