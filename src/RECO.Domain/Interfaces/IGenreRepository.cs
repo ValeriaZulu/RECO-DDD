@@ -7,5 +7,6 @@ namespace RECO.Domain.Interfaces
     {
         Task<Genre?> GetByNameAsync(string name);
         Task AddAsync(Genre genre);
+        Task<IEnumerable<Genre>> GetAllAsync();
     }
 }

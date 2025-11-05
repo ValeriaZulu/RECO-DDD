@@ -1,0 +1,20 @@
+@model IEnumerable<RECO.Domain.Entities.Genre>
+@{
+    ViewData["Title"] = "Pick your favorite genres";
+}
+<h2>Select your favorite genres</h2>
+<form method="post" action="/preferences">
+    <div>
+        @foreach (var g in Model)
+        {
+            <div>
+                <label>
+                    <input type="checkbox" name="selectedGenreIds" value="@g.Id" /> @g.Name
+                </label>
+            </div>
+        }
+    </div>
+    <div>
+        <button type="submit">Save preferences</button>
+    </div>
+</form>

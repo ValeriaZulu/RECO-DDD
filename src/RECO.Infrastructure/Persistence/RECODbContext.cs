@@ -40,7 +40,7 @@ namespace RECO.Infrastructure.Persistence
 
                 b.OwnsMany(p => p.PersonPreferences, pp =>
                 {
-                    pp.ToTable("PersonPreferences");
+                    pp.ToTable("PersonPreference");
                     pp.WithOwner().HasForeignKey("ProfileId");
                     pp.Property<int>(nameof(Domain.Entities.PersonPreference.PersonId));
                     pp.Property<string>(nameof(Domain.Entities.PersonPreference.Name)).IsRequired();

@@ -27,5 +27,10 @@ namespace RECO.Infrastructure.Repositories
             await _db.Set<Genre>().AddAsync(genre);
             await _db.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<Genre>> GetAllAsync()
+        {
+            return await _db.Set<Genre>().ToListAsync();
+        }
     }
 }
